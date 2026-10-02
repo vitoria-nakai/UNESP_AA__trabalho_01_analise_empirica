@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Users/ngara/OneDrive/Documentos/UNESP/UNESP_AA__trabalho_01_analise_empirica/UNESP_AA__trabalho_01_analise_empirica/dados_entrada",
+      "program": "c:/Users/ngara/OneDrive/Documentos/UNESP/UNESP_AA__trabalho_01_analise_empirica/UNESP_AA__trabalho_01_analise_empirica/dados_entrada/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
