@@ -9,8 +9,8 @@
 #define TAM 5
 
 // Função auxiliar para copiar vetores antes de ordenar
-void copiarVetor(int *origem, int *destino, int tamanho) {
-    for (int i = 0; i < tamanho; i++) {
+void copiarVetor(int *origem, int *destino, int tam) {
+    for (int i = 0; i < tam; i++) {
         destino[i] = origem[i];
     }
 }
