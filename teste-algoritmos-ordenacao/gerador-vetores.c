@@ -2,27 +2,27 @@
 #include <stdlib.h>
 #include <time.h>
 
-void geraAleatorio(int *vetor, int tamanho)
+void geraAleatorio(int *A, int tam)
 {
-    for (int i = 0; i < tamanho; i++)
+    for (int i = 0; i < tam; i++)
     {
-        vetor[i] = rand() % 100;
+        A[i] = rand() % 100;
     }
 }
 
-void geraOrdenado(int *vetor, int tamanho)
+void geraOrdenado(int *A, int tam)
 {
-    for (int i = 0; i < tamanho; i++)
+    for (int i = 0; i < tam; i++)
     {
-        vetor[i] = i;
+        A[i] = i;
     }
 }
 
-void geraInvertido(int *vetor, int tamanho)
+void geraInvertido(int *A, int tam)
 {
-    for (int i = 0; i < tamanho; i++)
+    for (int i = 0; i < tam; i++)
     {
-        vetor[i] = tamanho - i - 1;
+        A[i] = tam - i - 1;
     }
 }
 
