@@ -1,85 +1,143 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<string.h>
 #include <time.h>
 
 #include "ordenacao.c"
-#include "gerador-vetores.c"
 
-// DEFINIR TAMANHO DO VETOR
-#define TAM 5
 
 // Função auxiliar para copiar vetores antes de ordenar
-void copiarVetor(int *origem, int *destino, int tamanho) {
+void copiarVetor(const int *origem, int *destino, int tamanho) {
     for (int i = 0; i < tamanho; i++) {
         destino[i] = origem[i];
     }
 }
 
-// Executa um algoritmo para os 3 cenários, imprime a tabela no terminal e grava no CSV
-void testarAlgoritmo(FILE *arquivoCsv, const char *nomeAlgoritmo, void (*funcOrdenacao)(int*, int, Metricas*), int tamanho) {
-    int *vetorOrigem = (int*) malloc(tamanho * sizeof(int));
-    int *vetorTeste = (int*) malloc(tamanho * sizeof(int));
-    Metricas m;
+int carregarInstancia(const char *caminho, int **vetor){
+    
+    //ABERTURA DO ARQUIVO
+    FILE * f = fopen(caminho, "r");
+    if(f == NULL){
+        printf("Erro ao abri o arquivo %s\n", caminho);
+        return -1;
+    }
 
-    const char *tiposVetor[] = {"Ordenado", "Aleatorio", "Invertido"};
+    //GUARDANDO O TAMANHO DO ARQUIVO NA VARIÁVEL n
+    int n;
+    if(fscanf(f, "%d", &n) != 1){
+        printf("Erro ao ler o tamanho N no arquivo %s\n", caminho);
+        fclose(f);
+        return -1;
+    }
 
-    for (int i = 0; i < 3; i++) {
-        // Gerar o vetor conforme o cenário
-        if (i == 0) geraOrdenado(vetorOrigem, tamanho);
-        else if (i == 1) geraAleatorio(vetorOrigem, tamanho);
-        else geraInvertido(vetorOrigem, tamanho);
+    //ALOCANDO MEMÓRIA AO VETOR
+    *vetor = (int*)malloc(n * sizeof(int));
+    if(*vetor == NULL){
+        printf("Erro de memória para N = %d\n", n);
+        fclose(f);
+        return -1;
+    }
 
-        // Copiar o vetor para não alterar a fonte original
-        copiarVetor(vetorOrigem, vetorTeste, tamanho);
-
-        // Executar a ordenação
-        funcOrdenacao(vetorTeste, tamanho, &m);
-
-        // Imprimir linha formatada na tela
-        printf("%-20s %-15s %-15lld %-15lld %.6fs\n", 
-               nomeAlgoritmo, tiposVetor[i], m.comparacoes, m.trocas, m.tempo);
-
-        // Escrever a linha no arquivo CSV (usando ponto e vírgula como separador)
-        if (arquivoCsv != NULL) {
-            fprintf(arquivoCsv, "%s;%s;%lld;%lld;%.6f\n", 
-                    nomeAlgoritmo, tiposVetor[i], m.comparacoes, m.trocas, m.tempo);
+    //GUARDANDO OS ELEMENTOS DO ARQUIVO NO VETOR
+    for(int i = 0; i < n; i++){
+        if(fscanf(f, "%d", &(*vetor)[i]) != 1){
+            printf("Erro ao ler elemento %d no arquivo %s\n", i, caminho);
+            free(*vetor);
+            fclose(f);
+            return -1;
         }
     }
 
-    free(vetorOrigem);
-    free(vetorTeste);
+    fclose(f);
+    return n;
+}
+
+void testarEGravar(FILE *csv, const char *nomeAlg, void(*func)(int*, int, Metricas*), const int *origem, int *buffer, int n, const char *cenario, int rep){
+
+    Metricas m;
+    copiarVetor(origem, buffer, n);
+    func(buffer, n, &m);
+
+    //EXIBINDO NO CONSOLE
+    printf("%-18s %-12s %-8d %-5d %-15lld %-15lld %.6fs\n", nomeAlg, cenario, n, rep, m.comparacoes, m.trocas, m.tempo);
+
+
+    //GRAVANDO NO CSV com separador ponto e vírgula
+    if(csv != NULL){
+        fprintf(csv, "%s;%s;%d;%d;%lld;%lld;%.6f\n", nomeAlg, cenario, n, rep, m.comparacoes, m.trocas, m.tempo);
+    }
+}
+
+void executarTodosAlgoritmos(FILE *csv, const int *origem, int *buffer, int n, const char *cenario, int rep){
+    testarEGravar(csv, "Selection Sort", selectionSort, origem, buffer, n, cenario, rep);
+    testarEGravar(csv, "Insertion Sort", insertionSort, origem, buffer, n, cenario, rep);
+    testarEGravar(csv, "Merge Sort", mergeSort, origem, buffer, n, cenario, rep);
+    testarEGravar(csv, "Quick Sort", quickSort, origem, buffer, n, cenario, rep);
+    testarEGravar(csv, "Heap Sort", heapSort, origem, buffer, n, cenario, rep);
+
 }
 
 int main () 
 {
-    int tamanho = TAM;
-    srand(time(NULL));
+    int tamanhos[] = {1000, 5000, 10000, 20000, 40000};
+    int total_tamanhos = 5;
+    char caminho[128];
 
     // Abertura do arquivo CSV para escrita
     FILE *arquivoCsv = fopen("metricas.csv", "w");
     if (arquivoCsv == NULL) {
         printf("Aviso: Não foi possível criar o arquivo metricas.csv\n\n");
-    } else {
-        // Escreve o cabeçalho no CSV
-        fprintf(arquivoCsv, "Algoritmo;Vetor;Comparacoes;Trocas;Tempo\n");
+        return 1;
     }
 
-    // Exibe o cabeçalho no console
-    printf("%-20s %-15s %-15s %-15s %-10s\n", "Algoritmo", "Vetor", "Comparacoes", "Trocas", "Tempo");
-    printf("-----------------------------------------------------------------------------------\n");
+    //GUARDANDO O CABEÇALHO PADRÃO
+    fprintf(arquivoCsv, "Algoritmo;Cenario;N;Repeticao;Comparacoes;Trocas;Tempo_s\n");
+    printf("%-18s %-12s %-8s %-5s %-15s %-15s %-10s\n", "Algoritmo", "Cenario", "N", "Rep", "Comparacoes", "Trocas", "Tempo(s)");
+    printf("----------------------------------------------------------------------------------------\n");
 
-    // Executa e registra todos os algoritmos
-    testarAlgoritmo(arquivoCsv, "Selection Sort", selectionSort, tamanho);
-    testarAlgoritmo(arquivoCsv, "Insertion Sort", insertionSort, tamanho);
-    testarAlgoritmo(arquivoCsv, "Merge Sort", mergeSort, tamanho);
-    testarAlgoritmo(arquivoCsv, "Quick Sort", quickSort, tamanho);
-    testarAlgoritmo(arquivoCsv, "Heap Sort", heapSort, tamanho);
+    for(int t = 0; t < total_tamanhos; t++){
+        int n = tamanhos[t];
+        
 
-    // Fecha o arquivo caso tenha sido aberto com sucesso
-    if (arquivoCsv != NULL) {
-        fclose(arquivoCsv);
-        printf("\nResultados salvos com sucesso no arquivo 'metricas.csv'!\n");
+        //DADOS ALEATÓRIOS
+        for(int rep = 1; rep <= 10; rep++){
+            sprintf(caminho, "aleatorio_%d_%d.txt", n, rep);
+
+            int *vetorOrigem = NULL;
+            if(carregarInstancia(caminho, &vetorOrigem) < 0) continue;
+
+            int *bufferTeste = (int*)malloc(n * sizeof(int));
+            executarTodosAlgoritmos(arquivoCsv, vetorOrigem, bufferTeste, n, "Aleatorio", rep);
+
+            free(vetorOrigem);
+            free(bufferTeste);
+        }
+
+        //DADOS ORDENADOS DE FORMA CRESCENTE
+        sprintf(caminho, "Ordenado_%d.txt", n);
+        int *vetorOrdenado = NULL;
+        if (carregarInstancia(caminho, &vetorOrdenado) >= 0){
+            int *bufferTeste = (int*)malloc(n * sizeof(int));
+            for(int rep = 1; rep <= 10; rep++){
+                executarTodosAlgoritmos(arquivoCsv, vetorOrdenado, bufferTeste, n, "Ordenado", rep);
+            }
+            free(vetorOrdenado);
+            free(bufferTeste);
+        }
+
+        //DADOS ORDENADOS DE FORMA DECRESCENTE
+        sprintf(caminho, "invertido_%d.txt", n);
+        int *vetorInvertido = NULL;
+        if(carregarInstancia(caminho, &vetorInvertido) >= 0){
+            int *bufferTeste = (int*)malloc(n*sizeof(int));
+            for(int rep = 1; rep <= 10; rep++){
+                executarTodosAlgoritmos(arquivoCsv, vetorInvertido, bufferTeste, n, "Invertido", rep);    
+            }
+            free(vetorInvertido);
+            free(bufferTeste);
+        }
     }
-
+    fclose(arquivoCsv);
+    printf("\nBateria de testes finalizada com sucesso! Dados exportados para 'metricas.csv'.\n");
     return 0;
 }
